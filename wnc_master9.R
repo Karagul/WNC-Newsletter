@@ -10,7 +10,7 @@ library(formattable)
 library(blsAPI)
 library(TTR)
 library(tidyr)
-#setwd("~/Desktop/Programming/R/School/GA")
+setwd("~/Desktop/Programming/R/School/GA")
 source('wnc_source7.R')
 getwd()
 
@@ -108,20 +108,19 @@ dates <- seq(ymd('2007-1-1'), ymd(paste(as.character(year(latest)), as.character
 #cts <- ts(compare_level)
 #autoplot(cts, facets = F)
 
-compare_rate <- matrix(c('us_rate' = as.numeric(rev(us_rate_series)), 'nc_rate' = as.numeric(rev(nc_rate_series)), rate_series), ncol = 3, byrow = F)
-compare_rate <- data.frame(compare_rate, dates, row.names = NULL)
-compare_rate <- compare_rate %>% filter(dates >= '2015-01-01')
+compare_rate <- data.frame('US' = as.numeric(rev(us_rate_series)), 'NC' = as.numeric(rev(nc_rate_series)), 'WNC' = rate_series, 'date' = dates)
+compare_rate <- melt(compare_rate, id = c('date'))
+compare_rate <- compare_rate %>% filter(date >= '2015-01-01')
 
 compare_graph <- ggplot() + 
-  geom_line(aes(x = compare_rate$dates, y = compare_rate[,3]), stat = 'identity') +
-  geom_line(aes(x = compare_rate$dates, y = compare_rate[,1]), color = 'blue') +
-  geom_line(aes(x = compare_rate$dates, y = compare_rate[,2]), color = 'red') +
+  geom_line(data = compare_rate, aes(x = compare_rate$date, y = compare_rate$value, color = compare_rate$variable)) +
   theme_minimal() +
   labs(y = 'Unemployment Rate',
        x = 'Date',
        title = 'Unemployment Rate',
        subtitle = 'Comparison between US, NC, WNC.') +
-  theme(plot.margin = margin(4,9,4,4))
+  theme(plot.margin = margin(4,9,4,4)) +
+  guides(color = guide_legend('Group'))
 
 #compare_graph <- compare_graph + scale_fill_discrete(name = "Group")
 
@@ -138,15 +137,15 @@ dev.off()
 
 wnc_table <- make_wnc_table()
 
-table <- formattable(wnc_table, list('lasty1' = color_tile('transparent', 'yellow'),
-                            'lasty2' = color_tile('transparent', 'yellow'),
-                            'curry1' = color_tile('transparent', 'red'),
-                            'curry2' = color_tile('transparent', 'red'),
-                            'pctdiff' = color_tile('transparent', 'blue')
+table <- formattable(wnc_table, list('Prev Month Last Yr' = color_tile('transparent', 'yellow'),
+                            'Current Month Last Yr' = color_tile('transparent', 'yellow'),
+                            'Prev Month' = color_tile('transparent', 'red'),
+                            'Current Month' = color_tile('transparent', 'red'),
+                            'Change' = color_tile('transparent', 'blue')
                             )
             )
 #save(table, file = 'table.html')
 library(htmlwidgets)
 table <- as.htmlwidget(table)
-saveWidget(widget=table, file='table.html')
-webshot::webshot("table.html", file='table_out.png', delay=2)
+saveWidget(widget=table, file='table.html', selfcontained = T)
+webshot::webshot("table.html", file='table_out.png', delay=2, vheight = 750, cliprect = 'viewport')

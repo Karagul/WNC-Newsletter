@@ -66,6 +66,7 @@ get_unemp_rate <- function(sets, c){
   unemployment <- c()
   for(s in sets){
     s <- as.data.frame(s)
+    s <- s[order(s$dates),]
     df <- data.frame(x = s$dates, y = s$records.fields$unemprate, z = as.vector(s$records.fields$areaname))
     df2 <- na.omit(df)
     df3 <- df2[df2$z %in% c,]
@@ -140,7 +141,8 @@ make_grouped_data <- function(sets){
 }
 
 percent_change <- function(data){
-  #pct_change no longer returns numbers...
+  #RETURNS DIFFERENCE NOT PERCENT CHANGE.
+  #IF YOU WANT PCT CHANGE GET pct_chg
   pd_1 <- paste('0', as.character(max(na.omit(month(data$dates)))-1), sep = '')
   pd_2 = max(data$records.fields$period)
   pd1 <- data[data$records.fields$period == pd_1,]
@@ -153,7 +155,7 @@ percent_change <- function(data){
   pct_chg <- as.matrix((diff/as.numeric(pd1_o[,1])) * 100)
   fin <- data.frame(pct_chg, pd2$records.fields$areaname[order(pd2$records.fields$areaname)])
   assign('fin', fin, envir = .GlobalEnv)
-  return(pct_chg)
+  return(diff)
   }
 
 return_choropleth <- function(change, counties_too = counties_too){
@@ -210,8 +212,9 @@ make_empty_map <- function(){
 make_choropleth <- function(change, nc2 = nc2){
   shades <- auto.shading(change, n = 9, cutter = quantileCuts, cols = brewer.pal(9, "Reds"))
   wnc_choro <- choropleth(nc2, change, shades, 
-                          main = paste('Western NC Unemployment', '\n', as.character(month(max(current$dates), label = T, abbr = F)),' ' , as.character(endyr), sep = ''))
-  choro.legend(406832.7, 1196924, title = "Percent Change", sh = shades, cex = .75, bty = 'n', space_reduction = 40000)
+                          main = paste('Western NC Unemployment', '\n', as.character(month(max(current$dates), label = T, abbr = F)),' ' , as.character(endyr), sep = ''),
+                          sub = 'Note: Low unemployment rates are better than high unemployment rates.', cex.sub = .5)
+  choro.legend(406832.7, 1196924, title = "Change in Rate", sh = shades, cex = .75, bty = 'n', space_reduction = 40000)
 }
 
 bls_unemp <- function(id, startyear = startyr_agg, endyear = current_year, bls_base = bls_base){
@@ -266,17 +269,18 @@ make_wnc_table <- function(){
   wnc_table <- data.frame(wnc_table[,1], wnc_table[,8:9], wnc_table[,20:21])
   #the month selection is hardcoded not flexible
   
-  pctdiff <- ((wnc_table[,5]-wnc_table[,3])/wnc_table[,3])
+  pctchg <- (wnc_table[,5]-wnc_table[,3])
   #wnc_table <- data.frame('dates' = current$dates, 'areaname' = current$records.fields$areaname, 'rate' = current$records.fields$unemprate)
   #wnc_table <- wnc_table %>% spread(key = month(dates), value = rate )
-  wnc_table <- data.frame('county' = wnc_table[,1], 
-                          'lasty1' = wnc_table[,2],
-                          'lasty2' = wnc_table[,3],
-                          'curry1' = wnc_table[,4],
-                          'curry2' = wnc_table[,5],
-                          'crank' = rank(wnc_table[,5], ties.method = 'first'),
-                          'pctdiff' = percent(pctdiff, digits = 0),
-                          'pctrank' = rank(pctdiff, ties.method = 'first')
+  wnc_table <- data.frame('County' = wnc_table[,1], 
+                          'Prev Month Last Yr' = wnc_table[,2],
+                          "Current Month Last Yr" = wnc_table[,3],
+                          'Prev Month' = wnc_table[,5],
+                          "Current Month" = wnc_table[,4],
+                          'Rank Current Month' = rank(wnc_table[,5], ties.method = 'first'),
+                          'Change' = pctchg,
+                          'Rank Change' = rank(pctchg, ties.method = 'first'),
+                          check.names = F
   )
   return(wnc_table)
 }
