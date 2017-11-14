@@ -145,7 +145,11 @@ table <- formattable(wnc_table, list('Prev Month Last Yr' = color_tile('transpar
                             )
             )
 #save(table, file = 'table.html')
+library(htmltools)
+save_html(table, 'table.html')
+
 library(htmlwidgets)
 table <- as.htmlwidget(table)
 saveWidget(widget=table, file='table.html', selfcontained = T)
-webshot::webshot("table.html", file='table_out.png', delay=2, vheight = 750, cliprect = 'viewport')
+
+webshot::webshot("table.html", file='table_out.png', delay=5)
