@@ -4,14 +4,16 @@
 #for the WNC Newsletter.
 #NOTE: macOS or Linux only.
 
+echo "Installing Homebrew..."
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
 if which R
 then echo "Looks like you have R installed."
-else exit "You don't seem to have R installed.  Please install R: https://cloud.r-project.org/" 
+else echo "Installing R for you." | brew install R 
 fi
 
 
-echo 'Installing packages (You will be asked for your password).'
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+echo 'Installing packages and dependencies (You will probably be asked for your password).'
 brew install openssl@1.1
 brew install geos
 brew install pandoc
