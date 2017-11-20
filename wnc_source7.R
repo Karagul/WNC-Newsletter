@@ -140,9 +140,9 @@ make_grouped_data <- function(sets){
   return(grouped_df_all)
 }
 
-percent_change <- function(data){
+change <- function(data){
   #RETURNS DIFFERENCE NOT PERCENT CHANGE.
-  #IF YOU WANT PCT CHANGE GET pct_chg
+  #IF YOU WANT PCT CHANGE return(pct_chg)
   pd_1 <- paste('0', as.character(max(na.omit(month(data$dates)))-1), sep = '')
   pd_2 = max(data$records.fields$period)
   pd1 <- data[data$records.fields$period == pd_1,]

@@ -83,7 +83,8 @@ plot(g)
 dev.off()
 
 #Makes a choropleth map of Unemployment Rate % Change.
-change <- percent_change(current)
+#shouldnt be percent change
+change <- change(current)
 change2 <- abs(change)
 #wnc_choro <- return_choropleth(change = change, counties_too = counties_too)
 nc2 <- make_empty_map()
@@ -145,10 +146,7 @@ table <- formattable(wnc_table, list('Prev Month Last Yr' = color_tile('transpar
                             )
             )
 #save(table, file = 'table.html')
-library(htmltools)
-
-#library(htmlwidgets)
-#table <- as.htmlwidget(table)
-#saveWidget(widget=table, file='table.html', selfcontained = T)
-save_html(table, 'table.html')
-webshot::webshot("table.html", file='table_out.png', delay=5, zoom = 5)
+library(htmlwidgets)
+table <- as.htmlwidget(table)
+saveWidget(widget=table, file='table.html', selfcontained = T)
+webshot::webshot("table.html", file='table_out.png', delay=2, vheight = 750, cliprect = 'viewport')
