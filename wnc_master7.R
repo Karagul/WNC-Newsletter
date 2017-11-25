@@ -3,16 +3,15 @@ library(lubridate)
 library(dplyr)
 library(jsonlite)
 library(ggplot2)
-#library(plotly)
+library(plotly)
 library(GISTools)
 library(rgdal)
 library(formattable)
 library(blsAPI)
 library(TTR)
 library(tidyr)
-library(reshape2)
 #setwd("~/Desktop/Programming/R/School/GA")
-source('wnc_source8.R')
+source('wnc_source6.R')
 getwd()
 
 current_year  <- 2017
@@ -33,9 +32,9 @@ mov <- SMA(rate_series)
 
 #Grouped graph
 grouped <- make_grouped_data(yrs_list)
-grouped2 <- grouped %>% filter(date >= '2015-01-01') %>% group_by(date, group) %>% summarise(sum = sum(unemp))
+grouped2 <- grouped %>% group_by(date, group) %>% summarise(sum = sum(unemp))
 c_graph <- ggplot(data = grouped2, aes(x = date, y = sum, colour = group)) +
-geom_line() + theme_minimal() + ylim(0, (max(grouped2$sum) + 1500)) + labs (x = 'Date', 
+geom_line() + theme_minimal() + ylim(0, 30000) + labs (x = 'Date', 
                                                        y = 'Number Unemployed', 
                                                        caption = as.character("Groups are defined by county population density.\nAsheville: Madison, Buncombe.\nFoothills: Wilkes, Caldwell, Burke, Alexander, McDowell.\nHendersonville: Transylvania, Polk, Henderson.\nMountain: Yancey, Mitchell, Avery, Watauga, Ashe, Alleghany.\nPiedmont: Rutherford, Catawba.\nWestern: Haywood, Jackson, Swain, Macon, Graham, Clay, Cherokee."),
                                                        legend.title = 'Group', 
@@ -50,7 +49,8 @@ plot(c_graph)
 dev.off()
 
 #Same as above, but with unemployment rate.
-grouped_rate <- grouped %>% filter(date >= '2015-01-01') %>% group_by(date, group) %>% summarise(avg = mean(rate))
+#are these numbers right?
+grouped_rate <- grouped %>% group_by(date, group) %>% summarise(avg = mean(rate))
 rate_graph <- ggplot(data = grouped_rate, aes(x = date, y = avg, colour = group)) +
   geom_line() + theme_minimal() + labs (x = 'Date', 
                                         y = 'Unemployment Rate', 
@@ -68,25 +68,16 @@ dev.off()
 
 grouped$fuc <- as.character(grouped$name2)
 local <- grouped[grouped$fuc %in% l,]
-local_rate <- local %>% filter(date >= '2015-01-01') %>% group_by(date, name2) %>% summarise(avg = mean(rate))
+local_rate <- local %>% group_by(date, name2) %>% summarise(avg = mean(rate))
 g <- ggplot(data = local_rate, aes(x = date, y = avg, colour = name2)) +
   geom_line() + theme_minimal() + labs (x = 'Date', 
                                         y = 'Unemployment Rate',                                         legend.title = 'Group', 
-                                        colour = 'County',
+                                        colour = 'Group',
                                         title = 'Local Unemployment Rate')
 
-png(filename='local_rate.png', 
-    width = 5,
-    height = 4,
-    units = 'in',
-    res = 300)
-plot(g)
-dev.off()
 
 #Makes a choropleth map of Unemployment Rate % Change.
-#shouldnt be percent change
-change <- change(current)
-change2 <- abs(change)
+change <- percent_change(current)
 #wnc_choro <- return_choropleth(change = change, counties_too = counties_too)
 nc2 <- make_empty_map()
 png(filename='wnc_map.png',
@@ -95,7 +86,7 @@ png(filename='wnc_map.png',
     units = 'in',
     res = 300)
 par(mar = c(0,0,4,0))
-make_choropleth(change = change2, nc2 = nc2)
+make_choropleth(change = change, nc2 = nc2)
 dev.off()
 
 #Get data from BLS.
@@ -110,19 +101,19 @@ dates <- seq(ymd('2007-1-1'), ymd(paste(as.character(year(latest)), as.character
 #cts <- ts(compare_level)
 #autoplot(cts, facets = F)
 
-compare_rate <- data.frame('US' = as.numeric(rev(us_rate_series)), 'NC' = as.numeric(rev(nc_rate_series)), 'WNC' = rate_series, 'date' = dates)
-compare_rate <- melt(compare_rate, id = c('date'))
-compare_rate <- compare_rate %>% filter(date >= '2015-01-01')
+compare_rate <- matrix(c('us_rate' = as.numeric(us_rate_series), 'nc_rate' = as.numeric(nc_rate_series), rev(rate_series)), ncol = 3, byrow = F)
+rts <- ts(compare_rate)
 
 compare_graph <- ggplot() + 
-  geom_line(data = compare_rate, aes(x = compare_rate$date, y = compare_rate$value, color = compare_rate$variable)) +
+  geom_line(aes(x = dates, y = compare_rate[,3]), stat = 'identity') +
+  geom_line(aes(x = dates, y = compare_rate[,1]), color = 'blue') +
+  geom_line(aes(x = dates, y = compare_rate[,2]), color = 'red') +
   theme_minimal() +
   labs(y = 'Unemployment Rate',
        x = 'Date',
        title = 'Unemployment Rate',
        subtitle = 'Comparison between US, NC, WNC.') +
-  theme(plot.margin = margin(4,9,4,4)) +
-  guides(color = guide_legend('Group'))
+  theme(plot.margin = margin(4,9,4,4))
 
 #compare_graph <- compare_graph + scale_fill_discrete(name = "Group")
 
@@ -139,15 +130,17 @@ dev.off()
 
 wnc_table <- make_wnc_table()
 
-table <- formattable(wnc_table, list('Prev Month Last Yr' = color_tile('transparent', 'yellow'),
-                            'Current Month Last Yr' = color_tile('transparent', 'yellow'),
-                            'Prev Month' = color_tile('transparent', 'red'),
-                            'Current Month' = color_tile('transparent', 'red'),
-                            'Change' = color_tile('transparent', 'blue')
+table <- formattable(wnc_table, list('lasty1' = color_tile('transparent', 'yellow'),
+                            'lasty2' = color_tile('transparent', 'yellow'),
+                            'curry1' = color_tile('transparent', 'red'),
+                            'curry2' = color_tile('transparent', 'red'),
+                            'pctdiff' = color_tile('transparent', 'blue')
                             )
             )
 #save(table, file = 'table.html')
-library(htmltools)
-#table <- as.htmlwidget(table)
-save_html(table, file='table.html')
-webshot::webshot("table.html", file='table_out.png', delay=7, cliprect = 'viewport')
+library(htmlwidgets)
+table <- as.htmlwidget.formattable(table)
+saveWidget(widget=table, file='table.html', selfcontained = T)
+library(webshot)
+webshot(url = "table.html", file = 'table_out.png', delay=2)
+

@@ -20,6 +20,9 @@ nc_unemp <- 'LAUST370000000000004'
 nc_rate <- 'LAUST370000000000003'
 us_rate <- 'LNU04000000'
 
+endpd = as.numeric(readChar('month.txt', nchars = 2)) + 1
+endpd_agg = endpd
+
 LAUS_call <- function(base = LAUS_base, year){
   LAUS_url <- paste(base, year, sep = '')
   assign('LAUS_url', LAUS_url, envir = .GlobalEnv)
@@ -53,16 +56,13 @@ past_ten <- function(){
   return(list(unemp07,unemp08, unemp09, unemp10, unemp11, unemp12, unemp13, unemp14, unemp15, unemp16, unemp17))
 }
 
-#does this reverse the data?
 get_unemp_rate <- function(sets, c){
   #sets needs to be a vector of LAUS datasets
   #c is a county name string
   startyr = na.omit(year(sets[[1]]$dates))[1]
   endyr = year(sets[[length(sets)]]$dates[1])
-  endpd = max(na.omit(month(sets[[length(sets)]]$dates))) + 1
   assign('startyr', startyr, envir = .GlobalEnv)
   assign('endyr', endyr, envir = .GlobalEnv)
-  assign('endpd', endpd, envir = .GlobalEnv)
   unemployment <- c()
   for(s in sets){
     s <- as.data.frame(s)
@@ -77,12 +77,10 @@ get_unemp_rate <- function(sets, c){
 }
 
 get_agg_unemp <- function(sets){
-  startyr = na.omit(year(sets[[1]]$dates))[1]
   endyr = year(sets[[length(sets)]]$dates[1])
   endpd = max(na.omit(month(sets[[length(sets)]]$dates))) + 1
   assign('startyr_agg', startyr, envir = .GlobalEnv)
   assign('endyr_agg', endyr, envir = .GlobalEnv)
-  assign('endpd_agg', endpd, envir = .GlobalEnv)
   agg_unemp <- c()
   for(s in sets){
     df <- data.frame(x = s$dates, y = s$records.fields$unemp, z = s$records.fields$areaname)
@@ -94,7 +92,7 @@ get_agg_unemp <- function(sets){
 
 make_series <- function(unemployment = unemployment, startyr = startyr, endyr = endyr, endpd = endpd){
   #from agg_unemp, must specify each fn arg
-  time_series <- ts(unemployment, start = c(startyr,1), end = c(endyr, endpd), frequency = 12)
+  time_series <- as.ts(unemployment, start = c(startyr,1), end = c(endyr, endpd), frequency = 12)
   #maybe use decomp$trend?
   #or SMA
   #decomp <- decompose(time_series, type = 'add')
@@ -143,8 +141,8 @@ make_grouped_data <- function(sets){
 change <- function(data){
   #RETURNS DIFFERENCE NOT PERCENT CHANGE.
   #IF YOU WANT PCT CHANGE return(pct_chg)
-  pd_1 <- paste('0', as.character(max(na.omit(month(data$dates)))-1), sep = '')
-  pd_2 = max(data$records.fields$period)
+  pd_1 <- paste('0', as.character(month(endpd-1)), sep = '')
+  pd_2 = endpd
   pd1 <- data[data$records.fields$period == pd_1,]
   pd2 <- data[data$records.fields$period == pd_2,]
   pd1_c <- cbind(pd1$records.fields$unemprate, pd1$records.fields$areaname)
@@ -212,9 +210,9 @@ make_empty_map <- function(){
 make_choropleth <- function(change, nc2 = nc2){
   shades <- auto.shading(change, n = 9, cutter = quantileCuts, cols = brewer.pal(9, "Reds"))
   wnc_choro <- choropleth(nc2, change, shades, 
-                          main = paste('Western NC Unemployment', '\n', as.character(month(max(current$dates), label = T, abbr = F)),' ' , as.character(endyr), sep = ''),
+                          main = paste('Western NC Unemployment', '\n', as.character(month(endpd, label = T, abbr = F)),' ' , as.character(endyr), sep = ''),
                           sub = 'Note: Low unemployment rates are better than high unemployment rates.', cex.sub = .5)
-  choro.legend(406832.7, 1196924, title = "Change in Rate", sh = shades, cex = .75, bty = 'n', space_reduction = 40000)
+  #choro.legend(406832.7, 1196924, title = "Change in Rate", sh = shades, cex = .75, bty = 'n', space_reduction = 40000)
 }
 
 bls_unemp <- function(id, startyear = startyr_agg, endyear = current_year, bls_base = bls_base){
