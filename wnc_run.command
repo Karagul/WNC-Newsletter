@@ -1,6 +1,7 @@
 #!/bin/sh
 
 #This script will generate plots and maps for the WNC Newsletter.
+export TZ=EST
 
 echo Changing working directory...
 cd "$(dirname "$0")"
