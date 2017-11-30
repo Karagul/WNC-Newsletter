@@ -3,7 +3,6 @@ library(lubridate)
 library(dplyr)
 library(jsonlite)
 library(ggplot2)
-#library(plotly)
 library(GISTools)
 library(rgdal)
 library(formattable)
@@ -11,11 +10,9 @@ library(blsAPI)
 library(TTR)
 library(tidyr)
 library(reshape2)
-#setwd("~/Desktop/Programming/R/School/GA")
+#setwd("~/Desktop/WNC")
 source('wnc_source8.R')
 getwd()
-
-current_year  <- 2017
 
 #Returns a list of unemployment information from 2007 - 2017.
 current <- get_LAUS_data(current_year)
@@ -28,8 +25,6 @@ rate <- get_unemp_rate(yrs_list, counties)
 #Makes the above a time series object.
 series <- make_series(unemployment = unemployment, startyr = startyr_agg, endyr = endyr_agg, endpd = endpd_agg)
 rate_series <- make_series(unemployment = rate, startyr = startyr_agg, endyr = endyr_agg, endpd = endpd_agg)
-rate_series_d <- decompose(rate_series, type = 'mult')
-mov <- SMA(rate_series)
 
 #Grouped graph
 grouped <- make_grouped_data(yrs_list)
@@ -85,7 +80,7 @@ dev.off()
 
 #Makes a choropleth map of Unemployment Rate % Change.
 #shouldnt be percent change
-change <- change(current)
+change <- change_dif(current)
 change2 <- abs(change)
 #wnc_choro <- return_choropleth(change = change, counties_too = counties_too)
 nc2 <- make_empty_map()
@@ -99,16 +94,12 @@ make_choropleth(change = change2, nc2 = nc2)
 dev.off()
 
 #Get data from BLS.
+time_series <- ts(unemployment, start = c(startyr,1), end = c(endyr, endpd), frequency = 12)
 make_rate_series()
 make_level_series()
 
-latest <- max(current$dates)
-dates <- seq(ymd('2007-1-1'), ymd(paste(as.character(year(latest)), as.character(month(latest)+1), '1', sep = "-" )), by = 'month')
-
-######Graph 1#######
-#compare_level <- data.frame(nc_series, wnc_series)
-#cts <- ts(compare_level)
-#autoplot(cts, facets = F)
+#latest <- max(current$dates)
+dates <- seq(ymd('2007-1-1'), ymd(paste(as.character(current_year), as.character(endpd), '1', sep = "-" )), by = 'month')
 
 compare_rate <- data.frame('US' = as.numeric(rev(us_rate_series)), 'NC' = as.numeric(rev(nc_rate_series)), 'WNC' = rate_series, 'date' = dates)
 compare_rate <- melt(compare_rate, id = c('date'))
@@ -138,16 +129,19 @@ dev.off()
 #sort by date and county
 
 wnc_table <- make_wnc_table()
-
-table <- formattable(wnc_table, list('Prev Month Last Yr' = color_tile('transparent', 'yellow'),
+wnc_table <- as.data.frame(wnc_table)
+table <- formattable(wnc_table, formatter = format_table, list('Prev Month Last Yr' = color_tile('transparent', 'yellow'),
                             'Current Month Last Yr' = color_tile('transparent', 'yellow'),
                             'Prev Month' = color_tile('transparent', 'red'),
                             'Current Month' = color_tile('transparent', 'red'),
                             'Change' = color_tile('transparent', 'blue')
                             )
             )
+
+
 #save(table, file = 'table.html')
 library(htmltools)
-#table <- as.htmlwidget(table)
+table <- as.htmlwidget(table)
 save_html(table, file='table.html')
-webshot::webshot("table.html", file='table_out.png', delay=7, cliprect = 'viewport')
+webshot::webshot("table.html", file='table_out.png', delay = 7)
+

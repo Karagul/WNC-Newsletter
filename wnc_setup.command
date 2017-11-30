@@ -4,21 +4,16 @@
 #for the WNC Newsletter.
 #NOTE: macOS or Linux only.
 
-echo "Installing Homebrew..."
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-
 if which R
 then echo "Looks like you have R installed."
-else echo "Installing R for you." | brew install R 
+else exit "You don't seem to have R installed.  Please install R: https://cloud.r-project.org/" 
 fi
 
 
-echo 'Installing packages and dependencies (You will probably be asked for your password).'
-brew install openssl@1.1
+echo 'Installing packages (You will be asked for your password).'
+ruby -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
 brew install geos
-brew install pandoc
-
-sudo R -e "install.packages(c('lubridate', 'dplyr', 'jsonlite', 'ggplot2', 'GISTools', 'rgdal', 'formattable', 'blsAPI', 'TTR', 'tidyr', 'htmlwidgets', 'webshot'), repos='http://mirrors.nics.utk.edu/cran/')" || echo 'Package installation failed.'
+sudo R -e "install.packages(c('lubridate', 'dplyr', 'jsonlite', 'ggplot2', 'plotly', 'GISTools', 'rgdal', 'formattable', 'blsAPI', 'TTR', 'tidyr', 'htmlwidgets', 'webshot'), repos='http://mirrors.nics.utk.edu/cran/')" || echo 'Package installation failed.'
 sudo R -e "webshot::install_phantomjs()"
 
 
