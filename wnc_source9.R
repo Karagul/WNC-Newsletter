@@ -26,6 +26,7 @@ endpd <- as.numeric(readChar('month.txt', nchars = 2)) + 1
 endpd_agg <- endpd
 current_year <- as.numeric(readChar('year.txt', nchars = 4))
 acting_date <- ymd(paste(current_year, endpd, '1', sep = '-'))
+filter_date <- ymd(paste((current_year - 2), '1', '1', sep = '-' ))
   
 startyr <- 2007
 startyr_agg <- 2007
@@ -159,49 +160,8 @@ change_dif <- function(data){
   return(diff)
   }
 
-return_choropleth <- function(change, counties_too = counties_too){
-  fin <- cbind(change, tolower(counties_too))
-  fin <- as.data.frame(fin)
-  names(fin) <- c('pct_chg', 'subregion')
-  fin$subregion <- as.character(fin$subregion)
-  nc <- map_data('county') %>%
-    filter(region == 'north carolina')
-  index <- nc$subregion %in% tolower(counties_too)
-  nc <- nc[index,]
-  nc_dat <- left_join(nc, fin, by = 'subregion')
-  
-  shades <- auto.shading(change, n = 9, cutter = quantileCuts, cols = brewer.pal(9, "Reds"))
-  
-  p <- nc_dat %>%
-    group_by(group) %>%
-    plot_ly(x = ~long, 
-            y = ~lat, 
-            color = ~pct_chg, 
-            colors = shades$cols,
-            text = ~subregion, 
-            hoverinfo = 'text') %>%
-    add_polygons(line = list(width = 0.4)) %>%
-    add_polygons(
-      fillcolor = 'transparent',
-      line = list(color = 'black', 
-                  width = 0.5),
-      showlegend = FALSE, 
-      hoverinfo = 'none') %>%
-    layout(
-      title = "% Change Unemployment",
-      titlefont = list(size = 10),
-      xaxis = list(title = "", showgrid = FALSE,
-                   zeroline = FALSE, showticklabels = FALSE),
-      yaxis = list(title = "", showgrid = FALSE,
-                   zeroline = FALSE, showticklabels = FALSE),
-      showlegend = FALSE
-    )
-  return(p)
-}
-
 make_empty_map <- function(){
   prev <- getwd()
-  #setwd(paste(getwd(), '/CountyBoundaryShoreline_shp', sep = ''))
   nc <- readOGR(paste(getwd(),'/CountyBoundaryShoreline_shp/CountyBoundaryShoreline_polys.shp', sep = ''))
   index <- nc@data$NAME_LOCAS %in% counties_too
   nc2 <- nc[index,]
@@ -211,7 +171,8 @@ make_empty_map <- function(){
 }
 
 make_choropleth <- function(change, nc2 = nc2){
-  shades <- auto.shading(change, n = 9, cutter = sdCuts, cols = brewer.pal(9, "Reds"))
+  cut_fn <- ifelse(length(unique(round(change, digits = 2))) < 3, sdCuts, quantileCuts)
+  shades <- auto.shading(change, n = 9, cutter = cut_fn, cols = brewer.pal(9, "Reds"))
   wnc_choro <- choropleth(nc2, change, shades, 
                           main = paste('Western NC Unemployment', '\n', as.character(lubridate::month(acting_date, label = TRUE, abbr = FALSE)),' ' , as.character(endyr), sep = ''),
                           sub = 'Note: Low unemployment rates are better than high unemployment rates.', cex.sub = .5)

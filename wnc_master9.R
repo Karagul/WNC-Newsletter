@@ -28,7 +28,7 @@ rate_series <- make_series(unemployment = rate, startyr = startyr_agg, endyr = e
 
 #Grouped graph
 grouped <- make_grouped_data(yrs_list)
-grouped2 <- grouped %>% filter(date >= '2015-01-01') %>% group_by(date, group) %>% summarise(sum = sum(unemp))
+grouped2 <- grouped %>% filter(date >= filter_date) %>% group_by(date, group) %>% summarise(sum = sum(unemp))
 c_graph <- ggplot(data = grouped2, aes(x = date, y = sum, colour = group)) +
 geom_line() + theme_minimal() + ylim(0, (max(grouped2$sum) + 1500)) + labs (x = 'Date', 
                                                        y = 'Number Unemployed', 
@@ -44,8 +44,8 @@ png(filename='counties_level.png',
 plot(c_graph)
 dev.off()
 
-#Same as above, but with unemployment rate.
-grouped_rate <- grouped %>% filter(date >= '2015-01-01') %>% group_by(date, group) %>% summarise(avg = mean(rate))
+#unemployment rate graph
+grouped_rate <- grouped %>% filter(date >= filter_date) %>% group_by(date, group) %>% summarise(avg = mean(rate))
 rate_graph <- ggplot(data = grouped_rate, aes(x = date, y = avg, colour = group)) +
   geom_line() + theme_minimal() + labs (x = 'Date', 
                                         y = 'Unemployment Rate', 
@@ -61,9 +61,10 @@ png(filename='counties_rate.png',
 plot(rate_graph)
 dev.off()
 
+#local unemployment rate
 grouped$fuc <- as.character(grouped$name2)
 local <- grouped[grouped$fuc %in% l,]
-local_rate <- local %>% filter(date >= '2015-01-01') %>% group_by(date, name2) %>% summarise(avg = mean(rate))
+local_rate <- local %>% filter(date >= filter_date) %>% group_by(date, name2) %>% summarise(avg = mean(rate))
 g <- ggplot(data = local_rate, aes(x = date, y = avg, colour = name2)) +
   geom_line() + theme_minimal() + labs (x = 'Date', 
                                         y = 'Unemployment Rate',                                         legend.title = 'Group', 
@@ -79,10 +80,8 @@ plot(g)
 dev.off()
 
 #Makes a choropleth map of Unemployment Rate % Change.
-#shouldnt be percent change
 change <- change_dif(current)
 change2 <- abs(change)
-#wnc_choro <- return_choropleth(change = change, counties_too = counties_too)
 nc2 <- make_empty_map()
 png(filename='wnc_map.png',
     width = 4.25,
@@ -103,7 +102,7 @@ dates <- seq(ymd('2007-1-1'), ymd(paste(as.character(current_year), as.character
 
 compare_rate <- data.frame('US' = as.numeric(rev(us_rate_series)), 'NC' = as.numeric(rev(nc_rate_series)), 'WNC' = rate_series, 'date' = dates)
 compare_rate <- melt(compare_rate, id = c('date'))
-compare_rate <- compare_rate %>% filter(date >= '2015-01-01')
+compare_rate <- compare_rate %>% filter(date >= filter_date)
 
 compare_graph <- ggplot() + 
   geom_line(data = compare_rate, aes(x = compare_rate$date, y = compare_rate$value, color = compare_rate$variable)) +
@@ -115,7 +114,6 @@ compare_graph <- ggplot() +
   theme(plot.margin = margin(4,9,4,4)) +
   guides(color = guide_legend('Group'))
 
-#compare_graph <- compare_graph + scale_fill_discrete(name = "Group")
 
 png(filename='compare_graph.png',
     width = 4.5,
@@ -126,7 +124,6 @@ plot(compare_graph)
 dev.off()
 
 #####Make table#####
-#sort by date and county
 
 wnc_table <- make_wnc_table()
 wnc_table <- as.data.frame(wnc_table)
@@ -138,10 +135,8 @@ table <- formattable(wnc_table, formatter = format_table, list('Prev Month Last 
                             )
             )
 
-
-#save(table, file = 'table.html')
 library(htmltools)
 table <- as.htmlwidget(table)
-save_html(table, file='table.html')
+suppressWarnings(save_html(table, file='table.html'))
 webshot::webshot("table.html", file='table_out.png', delay = 7)
 
