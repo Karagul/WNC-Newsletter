@@ -1,3 +1,6 @@
+#WNC Source
+
+#Counties
 counties <- c('Alexander County', 'Alleghany County', 'Ashe County', 'Avery County', 'Buncombe County', 'Burke County', 'Caldwell County', 'Catawba County', 'Cherokee County', 'Clay County', 'Graham County', 'Haywood County', 'Henderson County', 'Jackson County', 'Macon County', 'Madison County', 'McDowell County', 'Mitchell County', 'Polk County', 'Rutherford County', 'Swain County', 'Transylvania County', 'Watauga County', 'Wilkes County', 'Yancey County')
 counties_too <- c("Alexander", "Alleghany", "Ashe", "Avery", "Buncombe", "Burke",
                   "Caldwell", "Catawba", "Cherokee", "Clay", "Graham", "Haywood",
@@ -12,9 +15,22 @@ hendersonville <- c('Transylvania', 'Polk', 'Henderson')
 asheville <- c('Madison', 'Buncombe')
 western <- c('Haywood', 'Jackson', 'Swain', 'Macon', 'Graham', 'Clay', 'Cherokee')
 
+#Time
+endpd <- as.numeric(readChar('month.txt', nchars = 2))
+endpd_agg <- endpd
+current_year <- as.numeric(readChar('year.txt', nchars = 4))
+acting_date <- ymd(paste(current_year, endpd, '1', sep = '-'))
+filter_date <- ymd(paste(current_year-2, endpd, '1', sep = '-'))
+
+startyr <- 2007
+startyr_agg <- 2007
+endyr <- current_year
+endyr_agg <- endyr
+
+#Data Retrieval
 LAUS_base <- 'https://accessnc.opendatasoft.com/api/records/1.0/search/?dataset=labor-force-laus&rows=-1&facet=areafacet&facet=periodyear&facet=adjusted&facet=shortdateseq&facet=areatyname&refine.areatyname=County&refine.periodyear='
 
-bls_base <- 'https://api.bls.gov/publicAPI/v2/timeseries/data/?registrationkey=14bb6f973495401788cc1e3b4025cf76&startyea=2007&endyear=2017&seriesid='
+bls_base <- paste('https://api.bls.gov/publicAPI/v2/timeseries/data/?registrationkey=14bb6f973495401788cc1e3b4025cf76&startyea=2007&endyear=', as.character(current_year),'&seriesid=', sep = '')
 us_unemp <- 'LNU03000000'
 nc_unemp <- 'LAUST370000000000004'
 nc_rate <- 'LAUST370000000000003'
@@ -22,18 +38,7 @@ us_rate <- 'LNU04000000'
 
 options(tz="EST")
 
-endpd <- as.numeric(readChar('month.txt', nchars = 2)) + 1
-endpd_agg <- endpd
-current_year <- as.numeric(readChar('year.txt', nchars = 4))
-acting_date <- ymd(paste(current_year, endpd, '1', sep = '-'))
-filter_date <- ymd(paste((current_year - 2), '1', '1', sep = '-' ))
-  
-startyr <- 2007
-startyr_agg <- 2007
-endyr <- current_year
-endyr_agg <- endyr
-
-
+#Functions
 LAUS_call <- function(base = LAUS_base, year){
   LAUS_url <- paste(base, year, sep = '')
   assign('LAUS_url', LAUS_url, envir = .GlobalEnv)
@@ -171,8 +176,8 @@ make_empty_map <- function(){
 }
 
 make_choropleth <- function(change, nc2 = nc2){
-  cut_fn <- ifelse(length(unique(round(change, digits = 2))) < 3, sdCuts, quantileCuts)
-  shades <- auto.shading(change, n = 9, cutter = cut_fn, cols = brewer.pal(9, "Reds"))
+  cut_fn <- ifelse(length(unique(round(change, digits = 2))) < 3, rangeCuts, quantileCuts)
+  shades <- auto.shading(change, n = 5, cutter = rangeCuts, cols = brewer.pal(5, "Reds"))
   wnc_choro <- choropleth(nc2, change, shades, 
                           main = paste('Western NC Unemployment', '\n', as.character(lubridate::month(acting_date, label = TRUE, abbr = FALSE)),' ' , as.character(endyr), sep = ''),
                           sub = 'Note: Low unemployment rates are better than high unemployment rates.', cex.sub = .5)
@@ -255,7 +260,8 @@ choro.legend <- function (px, py, sh, under = "under", over = "over", between = 
   if (lx < 3) 
     stop("break vector too short")
   res = character(lx + 1)
-  res[1] = paste(under, sprintf(fmt, x[1]))
+  res[1] <- ifelse(x[1] != 0,  paste(under, sprintf(fmt, x[1])), sprintf(fmt, x[1]))
+  
   for (i in 1:(lx - 1)) res[i + 1] <- paste(sprintf(fmt, x[i]), 
                                             between, sprintf(fmt, x[i + 1]))
   res[lx + 1] <- paste(over, sprintf(fmt, x[lx]))

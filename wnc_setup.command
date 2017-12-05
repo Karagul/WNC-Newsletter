@@ -12,8 +12,11 @@ fi
 
 echo 'Installing packages (You will be asked for your password).'
 ruby -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
+brew install openssl@1.1
 brew install geos
-sudo R -e "install.packages(c('lubridate', 'dplyr', 'jsonlite', 'ggplot2', 'plotly', 'GISTools', 'rgdal', 'formattable', 'blsAPI', 'TTR', 'tidyr', 'htmlwidgets', 'webshot'), repos='http://mirrors.nics.utk.edu/cran/')" || echo 'Package installation failed.'
+brew install pandoc
+
+sudo R -e "install.packages(c('lubridate', 'dplyr', 'jsonlite', 'ggplot2', 'GISTools', 'rgdal', 'formattable', 'blsAPI', 'TTR', 'tidyr', 'reshape2', 'htmltools', 'webshot'), repos='http://mirrors.nics.utk.edu/cran/')" || echo 'Package installation failed.'
 sudo R -e "webshot::install_phantomjs()"
 
 

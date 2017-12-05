@@ -10,6 +10,7 @@ library(blsAPI)
 library(TTR)
 library(tidyr)
 library(reshape2)
+library(htmltools)
 #setwd("~/Desktop/WNC")
 source('wnc_source9.R')
 getwd()
@@ -25,6 +26,8 @@ rate <- get_unemp_rate(yrs_list, counties)
 #Makes the above a time series object.
 series <- make_series(unemployment = unemployment, startyr = startyr_agg, endyr = endyr_agg, endpd = endpd_agg)
 rate_series <- make_series(unemployment = rate, startyr = startyr_agg, endyr = endyr_agg, endpd = endpd_agg)
+
+#make all graphs saves functions and do try except
 
 #Grouped graph
 grouped <- make_grouped_data(yrs_list)
@@ -135,7 +138,6 @@ table <- formattable(wnc_table, formatter = format_table, list('Prev Month Last 
                             )
             )
 
-library(htmltools)
 table <- as.htmlwidget(table)
 suppressWarnings(save_html(table, file='table.html'))
 webshot::webshot("table.html", file='table_out.png', delay = 7)
