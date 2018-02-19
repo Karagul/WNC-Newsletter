@@ -18,4 +18,4 @@ echo $year > year.txt
 #ask to do this or no
 #sudo R -e "update.packages(ask = F, repos = 'http://mirrors.nics.utk.edu/cran/')"
 
-sudo Rscript wnc_master9.R
+sudo Rscript wnc_master10.R
